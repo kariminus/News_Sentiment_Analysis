@@ -1,7 +1,7 @@
 # News Article Content and Sentiment Analysis Project
 
 ## Objective
-The project's goal was to analyze news articles' content and sentiment from various publications to uncover trends, biases, and the general sentiment within news reporting. This involved gathering a large dataset of news articles, classifying them by topic, and utilizing Natural Language Processing (NLP) techniques to assess sentiment.
+The project's goal was to analyze news articles' content and sentiment from various publications to uncover trends, biases, and the general sentiment within news reporting. This involved gathering a dataset of todays news articles, classifying them by topic, and utilizing Natural Language Processing (NLP) techniques to assess sentiment.
 
 ## Data Collection
 - **Source:** A broad spectrum of digital news platforms.
