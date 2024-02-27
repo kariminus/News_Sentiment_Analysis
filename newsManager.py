@@ -2,6 +2,8 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from transformers import pipeline
+import torch
 
 # List of RSS feeds
 feeds = [
@@ -82,3 +84,18 @@ def get_articles():
     df = pd.DataFrame(articles)
 
     return df
+
+def get_category(article):
+   
+    # Load the zero-shot classification pipeline, specifying the use of GPU if available
+    device = 0 if torch.cuda.is_available() else -1  # Use GPU (0) if available, else CPU (-1)
+    classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=device)
+
+    # Candidate labels in French
+    labels = ["politique", "sports", "technologie", "économie"]
+
+    # Perform classification
+    results = classifier(article, candidate_labels=labels, hypothesis_template="Cet article parle de {}.", multi_label=False)
+
+    # Return category with the highest score
+    return results["labels"][0]
