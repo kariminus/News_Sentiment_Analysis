@@ -1,6 +1,7 @@
 import feedparser
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 import pandas as pd
 from transformers import pipeline, AutoTokenizer
 import torch
@@ -33,6 +34,10 @@ def parse_feed(feed):
     entries = []
 
     for entry in NewsFeed.entries:
+        parsed_url = urlparse(entry.link)
+        path_segments = parsed_url.path.split('/')
+        category = path_segments[1] if len(path_segments) > 1 else ""
+
         try:
             content = fetch_article_content(entry.link)
         except:
@@ -40,7 +45,8 @@ def parse_feed(feed):
         entries.append({"title": entry.title, 
                       "published_at": entry.published,
                       "link": entry.link,
-                      "content": content})
+                      "content": content,
+                      "category": category})
 
     return {"feed": feed, "entries": entries}
 
@@ -79,7 +85,8 @@ def get_articles():
                     "published_at": entry["published_at"],
                     "source": sources[result["feed"]],
                     "link": entry["link"],
-                    "content": entry["content"]
+                    "content": entry["content"],
+                    "category": entry["category"]
                 })
 
     # Convert list of articles to DataFrame
@@ -90,7 +97,7 @@ def get_articles():
 
 # Define a function to compute sentiment scores
 def get_sentiment_score(text):
-    
+
     # Load the tokenizer and model
     tokenizer = AutoTokenizer.from_pretrained("cmarkea/distilcamembert-base-sentiment")
     analyzer = pipeline(
@@ -104,18 +111,3 @@ def get_sentiment_score(text):
     result = analyzer(text, truncation=True, max_length=max_length)
         
     return result[0]['label']
-
-def get_category(article):
-   
-    # Load the zero-shot classification pipeline, specifying the use of GPU if available
-    device = 0 if torch.cuda.is_available() else -1  # Use GPU (0) if available, else CPU (-1)
-    classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=device)
-
-    # Candidate labels in French
-    labels = ["politique", "sports", "technologie", "économie"]
-
-    # Perform classification
-    results = classifier(article, candidate_labels=labels, hypothesis_template="Cet article parle de {}.", multi_label=False)
-
-    # Return category with the highest score
-    return results["labels"][0]
