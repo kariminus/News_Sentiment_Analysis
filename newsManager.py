@@ -2,8 +2,10 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer
 import torch
+
+
 
 # List of RSS feeds
 feeds = [
@@ -84,6 +86,24 @@ def get_articles():
     df = pd.DataFrame(articles)
 
     return df
+
+
+# Define a function to compute sentiment scores
+def get_sentiment_score(text):
+    
+    # Load the tokenizer and model
+    tokenizer = AutoTokenizer.from_pretrained("cmarkea/distilcamembert-base-sentiment")
+    analyzer = pipeline(
+        task='text-classification',
+        model="cmarkea/distilcamembert-base-sentiment",
+        tokenizer=tokenizer
+    )
+
+    # Get the maximum token length supported by the model
+    max_length = tokenizer.model_max_length
+    result = analyzer(text, truncation=True, max_length=max_length)
+        
+    return result[0]['label']
 
 def get_category(article):
    
