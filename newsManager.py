@@ -5,7 +5,8 @@ from urllib.parse import urlparse
 import pandas as pd
 from transformers import pipeline, AutoTokenizer
 import torch
-
+from datetime import datetime
+import numpy as np
 
 
 # List of RSS feeds
@@ -15,7 +16,9 @@ feeds = [
     'https://www.20minutes.fr/feeds/rss-une.xml',
     'https://www.lepoint.fr/24h-infos/rss.xml',
     'https://www.francetvinfo.fr/titres.rss',
-    'https://rmc.bfmtv.com/rss/actualites/'
+    'https://rmc.bfmtv.com/rss/actualites/',
+    'https://www.francebleu.fr/rss/a-la-une.xml',
+    'https://www.lefigaro.fr/rss/figaro_actualites.xml',
 ]
 
 sources = {
@@ -24,7 +27,9 @@ sources = {
     'https://www.20minutes.fr/feeds/rss-une.xml': "20 Minutes",
     'https://www.lepoint.fr/24h-infos/rss.xml': "Le Point",
     'https://www.francetvinfo.fr/titres.rss': "France Info",
-    'https://rmc.bfmtv.com/rss/actualites/' : "BFM TV"
+    'https://rmc.bfmtv.com/rss/actualites/' : "BFM TV",
+    'https://www.francebleu.fr/rss/a-la-une.xml': "France Bleu",
+    'https://www.lefigaro.fr/rss/figaro_actualites.xml': "Le Figaro"
 }
 
 def parse_feed(feed):
@@ -91,6 +96,21 @@ def get_articles():
 
     # Convert list of articles to DataFrame
     df = pd.DataFrame(articles)
+    df['date'] = df['published_at'].apply(lambda x: x.split('+')[0])
+    df['date'] = df['date'].apply(lambda x: datetime.strptime(x.strip()[:-4], "%a, %d %b %Y %H:%M:%S") if x.endswith(" GMT") else datetime.strptime(x.strip(), "%a, %d %b %Y %H:%M:%S"))
+    # Compute sentiment scores for each article content
+    df["sentiment_label"] = df["content"].apply(get_sentiment_score)
+
+    # Classify sentiment scores into categories
+    conditions = [
+        (df["sentiment_label"] == "1 star"),
+        (df["sentiment_label"] == "2 stars"),
+        (df["sentiment_label"] == "3 stars"),
+        (df["sentiment_label"] == "4 stars"),
+        (df["sentiment_label"] == "5 stars")
+    ]
+    choices = ["very negative", "negative", "neutral", "positive", "very positive"]
+    df["sentiment_category"] = np.select(conditions, choices)
 
     return df
 
