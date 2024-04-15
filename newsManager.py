@@ -33,48 +33,34 @@ sources = {
 }
 
 def parse_feed(feed):
+    try:
+        news_feed = feedparser.parse(feed)
+        return {
+            "feed": feed,
+            "entries": [
+                {
+                    "title": entry.title,
+                    "published_at": entry.published,
+                    "link": entry.link,
+                    "content": fetch_article_content(entry.link),
+                    "category": urlparse(entry.link).path.split('/')[1] if urlparse(entry.link).path.split('/') else ""
+                }
+                for entry in news_feed.entries
+            ]
+        }
+    except Exception as e:
+        print(f"Error parsing {feed}: {e}")
+        return {"feed": feed, "entries": None}
 
-  try:
-    NewsFeed = feedparser.parse(feed)  
-    entries = []
-
-    for entry in NewsFeed.entries:
-        parsed_url = urlparse(entry.link)
-        path_segments = parsed_url.path.split('/')
-        category = path_segments[1] if len(path_segments) > 1 else ""
-
-        try:
-            content = fetch_article_content(entry.link)
-        except:
-            content =""
-        entries.append({"title": entry.title, 
-                      "published_at": entry.published,
-                      "link": entry.link,
-                      "content": content,
-                      "category": category})
-
-    return {"feed": feed, "entries": entries}
-
-  except Exception as e:
-    print(f"Error parsing {feed}: {e}")
-    return {"feed": feed, "entries": None}
-  
 def fetch_article_content(url):
-  # Send a GET request to the URL
-  response = requests.get(url)
-  response.raise_for_status()  # Raise an exception for HTTP errors
-
-  # Parse the response content with BeautifulSoup
-  soup = BeautifulSoup(response.content, 'html.parser')
-
-  # Extract the article content
-  article_content = soup.find('article')
-  paragraphs = article_content.find_all('p')
-
-  # Extract text from each paragraph and join them
-  article_text = ''.join(para.text for para in paragraphs)
-
-  return article_text
+    try:
+        with requests.get(url) as response:
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            article_content = soup.find('article')
+            return article_content.get_text(strip=True) if article_content else ""
+    except:
+        return ""
 
 def get_articles():
 
